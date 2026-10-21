@@ -30,6 +30,8 @@ from traversal import (
     pass_turn,
 )
 
+from bot.raceBot import choose_move
+
 PLAYER_NAMES = {1: "Red", 2: "Blue"}
 PIECE_LETTERS = {"explorer": "E", "vanguard": "V", "sentinel": "S"}
 SPECIAL_NAMES = {"diagonal": "diagonal step", "leap": "leap"}
@@ -38,7 +40,7 @@ HELP = """\
 Commands
   c1          select the piece on C1 and show where it can go
   c1 c4       move the piece on C1 to C4 (attacking if an enemy is there)
-  c10 off     finish: step the piece off its goal edge ("off" or the square past the edge, e.g. c11)
+  c10 off     finish: step the piece off its goal edge ("off at d" picks the column if there's a choice)
   moves       list every legal move
   undo        take back the last move
   pass        skip your turn (only when you have no legal move)
@@ -211,14 +213,20 @@ def end_message(state: GameState) -> str:
 def find_move(state: GameState, piece_id: str, target: str) -> Move | str:
     """Match the typed destination against the piece's legal moves; returns an error string on failure."""
     options = legal_moves(state, piece_id)
-    if target == "off":
+    words = target.split()
+    if words and words[0] == "off":
+        # "off", "off j" or "off at j", matching how the options list shows finishes
+        column = words[-1] if len(words) > 1 else None
         finishes = [m for m in options if m.finishes]
+        if column is not None:
+            finishes = [m for m in finishes if chr(ord("a") + m.to_col) == column]
         if len(finishes) == 1:
             return finishes[0]
         if not finishes:
-            return "That piece can't finish this turn."
-        return "That piece can finish in more than one column; name the square past the edge, e.g. " + \
-            square_name(finishes[0].to_row, finishes[0].to_col, state.size).lower()
+            where = f" at {column.upper()}" if column else ""
+            return f"That piece can't finish{where} this turn."
+        columns = " or ".join(chr(ord("A") + m.to_col) for m in finishes)
+        return f"That piece can finish at {columns}; type e.g. 'off at {chr(ord('a') + finishes[0].to_col)}'."
     square = parse_square(target, state.size)
     if square is None:
         return f"'{target}' isn't a square."
@@ -228,6 +236,21 @@ def find_move(state: GameState, piece_id: str, target: str) -> Move | str:
     return f"That piece can't reach {target.upper()}."
 
 
+    #def choose_move(state: GameState) -> Move:
+    #""" the bot action"""
+    #list = all_legal_moves(state)
+    #best = list[0]
+    #for i in list:
+    #    if i.to_row > best.to_row:
+    #        best = i
+
+    #return best
+
+
+
+
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Play Traversal against another person in the terminal.")
     parser.add_argument("--board", help="board file: JSON list of rows, or one row of heights per line (top row first)")
@@ -235,7 +258,7 @@ def main() -> None:
     parser.add_argument("--pushes", type=int, default=400, help="how rugged the random board is (default 400)")
     parser.add_argument("--no-color", action="store_true", help="plain text output")
     args = parser.parse_args()
-
+    BOT_PLAY = 2
     style = Style(color=not args.no_color and sys.stdout.isatty())
     try:
         board = load_board(args.board) if args.board else generate_board(pushes=args.pushes, seed=args.seed)
@@ -254,6 +277,15 @@ def main() -> None:
             print(render(state, style))
             print(status(state, style))
         show_board = False
+
+        if player == BOT_PLAY :
+            move = choose_move(state)
+            after = apply_move(state, move.piece_id, move.to_row, move.to_col)
+            print(describe_move(state, after, move))
+            history.append(state)
+            state = after
+            show_board = True
+            continue
 
         try:
             words = input(style.player(player, f"{name}") + " > ").strip().lower().split()
@@ -308,7 +340,7 @@ def main() -> None:
             continue
 
         if len(words) >= 2:
-            target = words[1]
+            target = " ".join(words[1:])
         else:
             print(render(state, style, selected=square, options=options))
             print("Options: " + ", ".join(describe_option(state, m) for m in options))
