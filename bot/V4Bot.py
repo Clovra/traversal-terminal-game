@@ -1,20 +1,27 @@
 from traversal import GameState, Move, all_legal_moves,legal_moves, apply_move, pass_turn
 
-
+nb_search = 0
 def choose_move(state: GameState) -> Move:
+    if state.move_count == 0 or state.move_count == 1 :
+        global nb_search
+        nb_search = 0
     best_move = None
     best_eval = None
     for m in all_legal_moves(state):
-        e = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), 2)
+        e = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), 1, -10000, 10000)
         if best_eval is None \
            or (state.current_turn == 1 and e > best_eval) \
            or (state.current_turn == 2 and e < best_eval):
             best_eval = e
             best_move = m
+    print(best_eval)
+    print(nb_search)
     return best_move
 
 
-def minMax (state: GameState, deep: int ):
+def minMax (state: GameState, deep: int, alpha, beta  ):
+    global nb_search
+    nb_search += 1
     if (state.winner != None) or (deep == 0):
         return evaluation(state)
     
@@ -22,15 +29,21 @@ def minMax (state: GameState, deep: int ):
         maxEval = -10000
         list_legal_move = all_legal_moves(state)
         for m in list_legal_move:
-            eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1)
+            eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1, alpha, beta)
             maxEval = Max(maxEval, eval)
+            alpha =Max(alpha, eval)
+            if beta <= alpha:
+                break 
         return maxEval
     else :
         minEval = 10000
         list_legal_move = all_legal_moves(state)
         for m in list_legal_move:
-            eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1)
+            eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1, alpha, beta)
             minEval = Min(minEval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break
         return minEval
 
 
@@ -76,9 +89,30 @@ def find_captur (legal_moves_rn: list) -> Move | None:
 
 def evaluation(state: GameState) -> int :
     eval = 0
+    
+    piece_value_r = piece_value(state)
+
+    total_picec_balance = piece_value_r[0]
+
+    total_advance = piece_value_r[1]
+
+    captur_bonus_r = captur_bonus(state)
+
+    current_score_dif = state.scores[0] - state.scores[1]
+    
+    devlopement_malus_r = devlopement_malus(state)
+
+    #print("total avence =" + str((total_advance * 1)) + "total peice balance =" + str((total_picec_balance * 5)) + "total picec balance = " + str((current_score_dif * 30)) + "captur bonus =" + str((captur_bonus_r * 3))
+
+    eval = (total_advance * 1) + (total_picec_balance * 5) + (current_score_dif * 30) + (captur_bonus_r * 3) + devlopement_malus_r
+
+    return eval 
+
+
+def piece_value(state: GameState) -> list :
     list_active_piece_1 = state.active_pieces(1)
     list_active_piece_2 = state.active_pieces(2)
-    
+
     total_player_1 = 0
     total_player_2 = 0
     player1_advence = 0
@@ -90,12 +124,47 @@ def evaluation(state: GameState) -> int :
         total_player_2 += 1
         player2_advence += p.row
 
+
     total_picec_balance = total_player_1 - total_player_2
 
     total_advance = player1_advence - player2_advence
 
-    current_score_dif = state.scores[0] - state.scores[1]
+    return [total_picec_balance, total_advance]
 
-    eval = (total_advance * 1) + (total_picec_balance * 5) + (current_score_dif * 30)
+def devlopement_malus (state: GameState) -> int:
+    list_active_piece_1 = state.active_pieces(1)
+    list_active_piece_2 = state.active_pieces(2)
+    
+    red_devlopement_malus = 0
+    blue_devlopement_malus = 0
 
-    return eval 
+    for p in list_active_piece_1:
+        if p.row == 0 :
+            red_devlopement_malus -= 1  
+    for p in list_active_piece_2:
+        if p.row == 9 :
+            blue_devlopement_malus += 1
+    return red_devlopement_malus - blue_devlopement_malus
+
+
+def captur_bonus(state: GameState) -> int:
+
+    bonusR_captur  = 0
+    bonusB_captur   = 0
+    if not state.game_over:
+        if state.current_turn == 1 :
+            if find_captur(all_legal_moves(state)):
+                bonusR_captur = 1
+            state_pass = pass_turn(state)
+            if find_captur(all_legal_moves(state_pass)) :
+                bonusB_captur = 1
+            return bonusR_captur - bonusB_captur
+        if state.current_turn == 2: 
+            if find_captur(all_legal_moves(state)):
+                bonusB_captur = 1
+            state_pass = pass_turn(state)
+            if find_captur(all_legal_moves(state_pass)) :
+                bonusR_captur = 1
+            return bonusR_captur - bonusB_captur
+    return 0
+ 

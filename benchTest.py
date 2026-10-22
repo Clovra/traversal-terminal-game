@@ -47,6 +47,7 @@ class GameResult:
     scores: list[int]
     think_time: dict[int, float]
     bot_moves: dict[int, int]
+    game_time: float
     error: str | None = None
 
     def winner_name(self) -> str | None:
@@ -89,10 +90,11 @@ def play_game(red_name: str, blue_name: str, bots: dict, board: list[list[int]],
     state = new_game(board)
     think_time = {1: 0.0, 2: 0.0}
     bot_moves = {1: 0, 2: 0}
+    game_start = time.perf_counter()
 
     def result(winner: int, reason: str, error: str | None = None) -> GameResult:
         return GameResult(red_name, blue_name, winner, reason, state.move_count, state.scores,
-                          think_time, bot_moves, error)
+                          think_time, bot_moves, time.perf_counter() - game_start, error)
 
     if watch:
         print(render(state, style))
@@ -202,8 +204,16 @@ def main() -> None:
         results.append(r)
         if not args.quiet:
             outcome = "draw" if r.winner == 0 else f"{r.winner_name()} ({PLAYER_NAMES[r.winner]}) wins"
+            # Times in bot order (first bot, then --vs), whatever colour each played;
+            # a bot against itself has no names to tell apart, so use the colours
+            if len(bot_names) == 2:
+                times = [(name, r.think_time[1 if name == red else 2]) for name in bot_names]
+            else:
+                times = [("Red", r.think_time[1]), ("Blue", r.think_time[2])]
             print(f"game {i + 1:>4}  {red} (Red) vs {blue} (Blue): {outcome:<24} "
-                  f"{r.reason:<24} {r.scores[0]}:{r.scores[1]}  {r.moves} moves")
+                  f"{r.reason:<24} {r.scores[0]}:{r.scores[1]}  {r.moves} moves  "
+                  + "  ".join(f"{name} {1000 * t:.0f} ms" for name, t in times)
+                  + f"  game {r.game_time:.2f} s")
 
     summarize(results, bot_names, seed)
 
