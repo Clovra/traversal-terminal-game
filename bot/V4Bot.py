@@ -7,13 +7,18 @@ def choose_move(state: GameState) -> Move:
         nb_search = 0
     best_move = None
     best_eval = None
+    alpha, beta = -10000, 10000
     for m in all_legal_moves(state):
-        e = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), 1, -10000, 10000)
-        if best_eval is None \
-           or (state.current_turn == 1 and e > best_eval) \
-           or (state.current_turn == 2 and e < best_eval):
-            best_eval = e
-            best_move = m
+        e = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), 2, alpha, beta)
+        if state.current_turn == 1:
+            if best_eval is None or e > best_eval:
+                best_eval, best_move = e, m
+            alpha = max(alpha, e)
+        else:
+            if best_eval is None or e < best_eval:
+                best_eval, best_move = e, m
+            beta = min(beta, e)
+
     print(best_eval)
     print(nb_search)
     return best_move
@@ -89,14 +94,21 @@ def find_captur (legal_moves_rn: list) -> Move | None:
 
 def evaluation(state: GameState) -> int :
     eval = 0
-    
+    if state.winner == 1:
+        return 1000
+    if state.winner == 2:
+        return -1000
+    if state.winner == 0:
+        return 0
+
+   
     piece_value_r = piece_value(state)
 
     total_picec_balance = piece_value_r[0]
 
     total_advance = piece_value_r[1]
 
-    captur_bonus_r = captur_bonus(state)
+    #captur_bonus_r = captur_bonus(state)
 
     current_score_dif = state.scores[0] - state.scores[1]
     
@@ -104,7 +116,7 @@ def evaluation(state: GameState) -> int :
 
     #print("total avence =" + str((total_advance * 1)) + "total peice balance =" + str((total_picec_balance * 5)) + "total picec balance = " + str((current_score_dif * 30)) + "captur bonus =" + str((captur_bonus_r * 3))
 
-    eval = (total_advance * 1) + (total_picec_balance * 5) + (current_score_dif * 30) + (captur_bonus_r * 3) + devlopement_malus_r
+    eval = (total_advance * 1) + (total_picec_balance * 5) + (current_score_dif * 30) + devlopement_malus_r * 3
 
     return eval 
 
@@ -139,12 +151,12 @@ def devlopement_malus (state: GameState) -> int:
     blue_devlopement_malus = 0
 
     for p in list_active_piece_1:
-        if p.row == 0 :
+        if p.row == 9 :
             red_devlopement_malus -= 1  
     for p in list_active_piece_2:
-        if p.row == 9 :
+        if p.row == 0 :
             blue_devlopement_malus += 1
-    return red_devlopement_malus - blue_devlopement_malus
+    return red_devlopement_malus + blue_devlopement_malus
 
 
 def captur_bonus(state: GameState) -> int:
