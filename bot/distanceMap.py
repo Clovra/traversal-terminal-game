@@ -5,9 +5,15 @@ class DistanceMap:
     player: int                 # 1 = Red, 2 = Blue
     movement: int               # 5 explorer, 4 vanguard, 3 sentinel
     turns: list[list[int]]      # turns[row][col] = turns needed to finish from that square
+    max_turns: int              # the biggest value in turns, the slowest square to finish from
 
     def turns_at(self, row: int, col: int) -> int:
         return self.turns[row][col]
+
+    def progress_at(self, row: int, col: int) -> int:
+        # turns gained compared to the slowest square; never negative, so a piece
+        # still on the board always counts for something
+        return self.max_turns - self.turns[row][col]
 
 def one_turn(board, r, c, movement) -> dict[tuple[int, int], int]:
     """{(row, col): movement left} for every square reachable this turn."""
@@ -54,7 +60,8 @@ def build_map(board, player, movement) -> DistanceMap:
                 if new < turns[r][c]:
                     turns[r][c] = new
                     changed = True
-    return DistanceMap(player, movement, turns)
+    max_turns = max(max(row) for row in turns)
+    return DistanceMap(player, movement, turns, max_turns)
 
 # The board never changes during a game, so the maps are built once per board
 _maps_board = None

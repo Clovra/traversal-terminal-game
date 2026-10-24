@@ -161,24 +161,25 @@ def distance_bonus(state):
     red_maps = {mv: get_map(state.board, 1, mv) for mv in (3, 4, 5)}
     blue_maps = {mv: get_map(state.board, 2, mv) for mv in (3, 4, 5)}
 
-    red_turns = 0
-    blue_turns = 0
+    # progress, not turns left: a captured piece must lose its value, not drop a cost
+    red_progress = 0
+    blue_progress = 0
     for p in state.active_pieces(1):
-         if p.type == "explorer":
-            red_turns += ADV_EXPLORER * red_maps[p.movement].turns_at(p.row, p.col)
-         if p.type == "vanguard":
-            red_turns += WHEIGHTS["adv_vanguard"] * red_maps[p.movement].turns_at(p.row, p.col)
-         if p.type == "sentinel":
-            red_turns += WHEIGHTS["adv_sentinal"] * red_maps[p.movement].turns_at(p.row, p.col)
+        if p.type == "explorer":
+            red_progress += ADV_EXPLORER * red_maps[p.movement].progress_at(p.row, p.col)
+        if p.type == "vanguard":
+            red_progress += WHEIGHTS["adv_vanguard"] * red_maps[p.movement].progress_at(p.row, p.col)
+        if p.type == "sentinel":
+            red_progress += WHEIGHTS["adv_sentinal"] * red_maps[p.movement].progress_at(p.row, p.col)
     for p in state.active_pieces(2):
         if p.type == "explorer":
-            blue_turns += ADV_EXPLORER * blue_maps[p.movement].turns_at(p.row, p.col)
+            blue_progress += ADV_EXPLORER * blue_maps[p.movement].progress_at(p.row, p.col)
         if p.type == "vanguard":
-            blue_turns += WHEIGHTS["adv_vanguard"] * blue_maps[p.movement].turns_at(p.row, p.col)
+            blue_progress += WHEIGHTS["adv_vanguard"] * blue_maps[p.movement].progress_at(p.row, p.col)
         if p.type == "sentinel":
-            blue_turns += WHEIGHTS["adv_sentinal"] * blue_maps[p.movement].turns_at(p.row, p.col)
+            blue_progress += WHEIGHTS["adv_sentinal"] * blue_maps[p.movement].progress_at(p.row, p.col)
 
-    return blue_turns - red_turns
+    return red_progress - blue_progress
 
 
 def devlopement_malus (state: GameState) -> int:
