@@ -8,7 +8,7 @@ def choose_move(state: GameState) -> Move:
     best_move = None
     best_eval = None
     alpha, beta = -10000, 10000
-    for m in all_legal_moves(state):
+    for m in order(all_legal_moves(state), state):
         e = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), 2, alpha, beta)
         if state.current_turn == 1:
             if best_eval is None or e > best_eval:
@@ -32,7 +32,7 @@ def minMax (state: GameState, deep: int, alpha, beta  ):
     
     if state.current_turn == 1:
         maxEval = -10000
-        list_legal_move = all_legal_moves(state)
+        list_legal_move = order(all_legal_moves(state), state)
         for m in list_legal_move:
             eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1, alpha, beta)
             maxEval = Max(maxEval, eval)
@@ -42,7 +42,7 @@ def minMax (state: GameState, deep: int, alpha, beta  ):
         return maxEval
     else :
         minEval = 10000
-        list_legal_move = all_legal_moves(state)
+        list_legal_move = order(all_legal_moves(state), state)
         for m in list_legal_move:
             eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1, alpha, beta)
             minEval = Min(minEval, eval)
@@ -64,27 +64,12 @@ def Min(int1: int, int2: int) -> int :
     else :
         return int1
 
-
-def find_faster (legal_moves_rn: list, current_turn: list) -> list:
-    list_of_best = []
-    if not legal_moves_rn:
-        return list_of_best
-    best_value = legal_moves_rn[0].to_row
-    if current_turn == 1:
-        for i in legal_moves_rn:
-            if i.to_row < best_value:
-                best_value = i.to_row
-        for f in legal_moves_rn:
-            if f.to_row == best_value:
-                list_of_best.append(f)
+def order(list_legal_move: list, state: GameState) -> list:
+    if state.current_turn == 1:
+        list_legal_move.sort(key=lambda m: (m.captured_id is None, m.to_row))
     else:
-        for i in legal_moves_rn:
-            if i.to_row > best_value:
-                best_value = i.to_row
-        for f in legal_moves_rn:
-            if f.to_row == best_value:
-                list_of_best.append(f)
-    return list_of_best
+        list_legal_move.sort(key=lambda m: (m.captured_id is None, -m.to_row))
+    return list_legal_move
 
 def find_captur (legal_moves_rn: list) -> Move | None:
     for f in legal_moves_rn:
@@ -125,15 +110,32 @@ def piece_value(state: GameState) -> list :
     list_active_piece_1 = state.active_pieces(1)
     list_active_piece_2 = state.active_pieces(2)
 
+    #Sentinal = 3
+    #vanguard = 2
+    #explorer = 1
+
+
     total_player_1 = 0
     total_player_2 = 0
     player1_advence = 0
     player2_advence = 0
     for p in list_active_piece_1:
-        total_player_1 += 1
+        if p.type == "explorer":
+            total_player_1 += 1
+        if p.type == "vanguard":
+            total_player_1 += 2
+        if p.type == "sentinel":
+            total_player_1 += 3
         player1_advence += (state.size - 1 ) - p.row
+
     for p in list_active_piece_2:
-        total_player_2 += 1
+        if p.type == "explorer":
+            total_player_2 += 1
+        if p.type == "vanguard":
+            total_player_2 += 2
+        if p.type == "sentinel":
+            total_player_2 += 3
+
         player2_advence += p.row
 
 
