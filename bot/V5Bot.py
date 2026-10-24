@@ -1,7 +1,8 @@
 from traversal import GameState, Move, all_legal_moves,legal_moves, apply_move, pass_turn
 
-WHEIGHTS = {"advance" : 1, "piece" : 5, "score" : 30, "develop" : 3, "defense" : 1}
-DEPTH = 1
+WHEIGHTS = {"advance" : 3, "piece" : 5, "score" : 30, "develop" : 3, "defense" : 1, "adv_sentinal" : 1, "adv_vanguard" : 1}
+DEPTH = 2
+ADV_EXPLORER = 1
 
 nb_search = 0
 def choose_move(state: GameState) -> Move:
@@ -127,22 +128,26 @@ def piece_value(state: GameState) -> list :
     player2_advence = 0
     for p in list_active_piece_1:
         if p.type == "explorer":
+            player1_advence += ((state.size - 1 ) - p.row) * ADV_EXPLORER
             total_player_1 += 1
         if p.type == "vanguard":
+            player1_advence += ((state.size - 1 ) - p.row) * WHEIGHTS["adv_vanguard"]
             total_player_1 += 2
         if p.type == "sentinel":
+            player1_advence += ((state.size - 1 ) - p.row) * WHEIGHTS["adv_sentinal"]
             total_player_1 += 3
-        player1_advence += (state.size - 1 ) - p.row
 
     for p in list_active_piece_2:
         if p.type == "explorer":
+            player2_advence += p.row * ADV_EXPLORER
             total_player_2 += 1
         if p.type == "vanguard":
+            player2_advence += p.row * WHEIGHTS["adv_vanguard"]
             total_player_2 += 2
         if p.type == "sentinel":
+            player2_advence += p.row * WHEIGHTS["adv_sentinal"]
             total_player_2 += 3
 
-        player2_advence += p.row
 
 
     total_picec_balance = total_player_1 - total_player_2
@@ -207,34 +212,6 @@ def captur_bonus(state: GameState) -> int:
                 bonusR_captur = 1
             return bonusR_captur - bonusB_captur
     return 0
-
-
-
-def test_eval(state: GameState) -> int :
-    eval = 0
-    list_active_piece_1 = state.active_pieces(1)
-    list_active_piece_2 = state.active_pieces(2)
-    
-    total_player_1 = 0
-    total_player_2 = 0
-    player1_advence = 0
-    player2_advence = 0
-    for p in list_active_piece_1:
-        total_player_1 += 1
-        player1_advence += (state.size - 1 ) - p.row
-    for p in list_active_piece_2:
-        total_player_2 += 1
-        player2_advence += p.row
-
-    total_picec_balance = total_player_1 - total_player_2
-
-    total_advance = player1_advence - player2_advence
-
-    current_score_dif = state.scores[0] - state.scores[1]
-
-    eval = (total_advance * 1) + (total_picec_balance * 5) + (current_score_dif * 20)
-
-    return eval 
 
 
 

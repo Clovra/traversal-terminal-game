@@ -1,0 +1,11 @@
+{
+  "weights": {
+    "advance": 2.0,
+    "piece": 5,
+    "score": 30,
+    "develop": 3,
+    "defense": 1
+  },
+  "step": 2.0,
+  "next_seed": 1001
+}

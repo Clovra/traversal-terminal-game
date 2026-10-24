@@ -10,7 +10,7 @@ The bot needs a WHEIGHTS dict and a DEPTH global at the top of its file.
 Each challenger plays --games games against the best weights, on fresh boards,
 each board twice with the colours swapped. It wins clearly when
 (its wins - best's wins) > 2 * sqrt(decisive games). After a full pass with
-no change the step gets smaller; tuning stops when the step is below --min-step.
+no change the step gets smaller (--shrink); tuning stops when the step is below --min-step.
 The best weights are saved to tune_<bot>.json after every change, so it's safe
 to stop with Ctrl-C at any time.
 """
@@ -132,12 +132,17 @@ def main() -> None:
                         help="games played at once (default: CPUs - 1)")
     parser.add_argument("--step", type=float, default=1.5, help="first multiplier for a weight (default 1.5)")
     parser.add_argument("--min-step", type=float, default=1.1, help="stop below this step (default 1.1)")
+    parser.add_argument("--shrink", type=float, default=0.5,
+                        help="after a pass with no change, keep this fraction of the step's change, "
+                             "e.g. 0.5 turns x1.5 into x1.25 (default 0.5)")
     parser.add_argument("--only", nargs="+", metavar="KEY", help="tune only these weights")
     parser.add_argument("--seed", type=int, default=1, help="seed for the boards (default 1)")
     parser.add_argument("--pushes", type=int, default=400, help="how rugged the boards are (default 400)")
     parser.add_argument("--resume", action="store_true", help="start from the saved tune_<bot>.json")
     args = parser.parse_args()
     args.games += args.games % 2  # every board is played with both colours
+    if not 0 < args.shrink < 1:
+        parser.error("--shrink must be between 0 and 1")
 
     path = bot_path(args.bot)
     module = load_copy(path, "main")
@@ -193,7 +198,7 @@ def main() -> None:
                         if improved:
                             break  # no need to try the other direction
                 if not changed:
-                    step = math.sqrt(step)
+                    step = 1 + (step - 1) * args.shrink
                     print(f"\nNo change this pass; smaller step: x{step:.3f}\n")
                 save()
         except KeyboardInterrupt:
