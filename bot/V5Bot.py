@@ -1,5 +1,8 @@
 from traversal import GameState, Move, all_legal_moves,legal_moves, apply_move, pass_turn
 
+WHEIGHTS = {"advance" : 1, "piece" : 5, "score" : 30, "develop" : 3, "defense" : 1}
+DEPTH = 1
+
 nb_search = 0
 def choose_move(state: GameState) -> Move:
     if state.move_count == 0 or state.move_count == 1 :
@@ -9,7 +12,7 @@ def choose_move(state: GameState) -> Move:
     best_eval = None
     alpha, beta = -10000, 10000
     for m in order(all_legal_moves(state), state):
-        e = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), 2, alpha, beta)
+        e = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), DEPTH, alpha, beta)
         if state.current_turn == 1:
             if best_eval is None or e > best_eval:
                 best_eval, best_move = e, m
@@ -94,16 +97,17 @@ def evaluation(state: GameState) -> int :
     total_advance = piece_value_r[1]
 
     #captur_bonus_r = captur_bonus(state)
-    
-    strengh_bonus_r = strength_bonus(state)
 
     current_score_dif = state.scores[0] - state.scores[1]
     
     devlopement_malus_r = devlopement_malus(state)
 
-    #print("total avence =" + str((total_advance * 1)) + "total peice balance =" + str((total_picec_balance * 5)) + "total picec balance = " + str((current_score_dif * 30)) + "captur bonus =" + str((captur_bonus_r * 3))
+    defense_bonus_r = defense_bonus(state)
 
-    eval = (total_advance * 1) + strengh_bonus_r * 1 + (total_picec_balance * 5) + (current_score_dif * 30) + devlopement_malus_r * 3
+    #print("total avence =" + str((total_advance * 1)) + "total peice balance =" + str((total_picec_balance * 5)) + "total picec balance = " + str((current_score_dif * 30)) + "captur bonus =" + str((captur_bonus_r * 3))
+    
+    
+    eval = (total_advance * WHEIGHTS["advance"]) + (total_picec_balance * WHEIGHTS["piece"]) + (current_score_dif * WHEIGHTS["score"]) + (devlopement_malus_r * WHEIGHTS["develop"]) + (defense_bonus_r * WHEIGHTS["defense"])
 
     return eval 
 
@@ -162,17 +166,26 @@ def devlopement_malus (state: GameState) -> int:
             blue_devlopement_malus += 1
     return red_devlopement_malus + blue_devlopement_malus
 
-def strength_bonus(state: GameState) -> int:
-    list_active_piece_1 = state.active_pieces(1)
-    list_active_piece_2 = state.active_pieces(2)
+def defense_bonus(state: GameState) -> int:
+    # each friendly piece next to a piece (up, down, left, right) gives it +1 defense
+    red_squares = set()
+    blue_squares = set()
+    for p in state.active_pieces(1):
+        red_squares.add((p.row, p.col))
+    for p in state.active_pieces(2):
+        blue_squares.add((p.row, p.col))
 
-    red_bonus = 0
-    blue_bonus = 0
-    for p in list_active_piece_1:
-        red_bonus = red_bonus + p.strength
-    for p in list_active_piece_2:
-        blue_bonus += blue_bonus + p.strength
-    return red_bonus - blue_bonus
+    red_defense = 0
+    blue_defense = 0
+    for (r, c) in red_squares:
+        for (nr, nc) in ((r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)):
+            if (nr, nc) in red_squares:
+                red_defense += 1
+    for (r, c) in blue_squares:
+        for (nr, nc) in ((r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)):
+            if (nr, nc) in blue_squares:
+                blue_defense += 1
+    return red_defense - blue_defense
 
 def captur_bonus(state: GameState) -> int:
 
@@ -194,4 +207,34 @@ def captur_bonus(state: GameState) -> int:
                 bonusR_captur = 1
             return bonusR_captur - bonusB_captur
     return 0
- 
+
+
+
+def test_eval(state: GameState) -> int :
+    eval = 0
+    list_active_piece_1 = state.active_pieces(1)
+    list_active_piece_2 = state.active_pieces(2)
+    
+    total_player_1 = 0
+    total_player_2 = 0
+    player1_advence = 0
+    player2_advence = 0
+    for p in list_active_piece_1:
+        total_player_1 += 1
+        player1_advence += (state.size - 1 ) - p.row
+    for p in list_active_piece_2:
+        total_player_2 += 1
+        player2_advence += p.row
+
+    total_picec_balance = total_player_1 - total_player_2
+
+    total_advance = player1_advence - player2_advence
+
+    current_score_dif = state.scores[0] - state.scores[1]
+
+    eval = (total_advance * 1) + (total_picec_balance * 5) + (current_score_dif * 20)
+
+    return eval 
+
+
+
