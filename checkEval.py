@@ -82,7 +82,7 @@ def main() -> None:
     problems = 0
 
     starts = [evaluate(new_game(generate_board(seed=args.seed + i))) for i in range(10)]
-    if any(v != 0 for v in starts):
+    if any(abs(v) > 1e-9 for v in starts):  # decimal weights leave tiny rounding errors
         problems += 1
         print(f"✗ Starting position isn't 0 on every board: {starts}")
     else:

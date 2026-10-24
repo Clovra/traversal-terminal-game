@@ -4,8 +4,10 @@
     "piece": 5,
     "score": 30,
     "develop": 3,
-    "defense": 1
+    "defense": 1,
+    "adv_sentinal": 5.062,
+    "adv_vanguard": 1
   },
-  "step": 2.0,
+  "step": 1.5,
   "next_seed": 1001
 }

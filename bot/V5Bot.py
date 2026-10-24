@@ -1,6 +1,6 @@
 from traversal import GameState, Move, all_legal_moves,legal_moves, apply_move, pass_turn
 
-WHEIGHTS = {"advance" : 3, "piece" : 5, "score" : 30, "develop" : 3, "defense" : 1, "adv_sentinal" : 1, "adv_vanguard" : 1}
+WHEIGHTS = {"advance" : 3, "piece" : 5, "score" : 30, "develop" : 3, "defense" : 1, "adv_sentinal" : 3, "adv_vanguard" : 0.333}
 DEPTH = 2
 ADV_EXPLORER = 1
 
