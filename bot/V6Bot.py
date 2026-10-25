@@ -40,10 +40,7 @@ def minMax (state: GameState, deep: int, alpha, beta  ):
         maxEval = -10000
         list_legal_move = order(all_legal_moves(state), state)
         for m in list_legal_move:
-            if (m.captured_id is None or m.finishes):
-                eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep, alpha, beta)
-            else :
-                eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1, alpha, beta)
+            eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1, alpha, beta)
             maxEval = Max(maxEval, eval)
             alpha =Max(alpha, eval)
             if beta <= alpha:
@@ -53,10 +50,7 @@ def minMax (state: GameState, deep: int, alpha, beta  ):
         minEval = 10000
         list_legal_move = order(all_legal_moves(state), state)
         for m in list_legal_move:
-            if (m.captured_id is None or m.finishes):
-                eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep, alpha, beta)
-            else :
-                eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1, alpha, beta)
+            eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1, alpha, beta)
             minEval = Min(minEval, eval)
             beta = min(beta, eval)
             if beta <= alpha:

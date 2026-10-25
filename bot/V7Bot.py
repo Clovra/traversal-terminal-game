@@ -1,10 +1,8 @@
-
 from traversal import GameState, Move, all_legal_moves,legal_moves, apply_move, pass_turn
 from bot.distanceMap import get_map
 
-WHEIGHTS = {"advance" : 3, "piece" : 5, "score" : 30, "develop" : 0.6, "defense" : 1, "adv_sentinal" : 3, "adv_vanguard" : 0.333}
+WHEIGHTS = {"advance" : 3, "piece" : 5, "val_sentinal" : 1, "val_vanguard" : 1, "score" : 30, "develop" : 0.6, "defense" : 1, "adv_sentinal" : 3, "adv_vanguard" : 0.333}
 DEPTH = 2
-QDEPTH = 4   # max captures/finishes followed past DEPTH
 ADV_EXPLORER = 1
 
 nb_search = 0
@@ -34,10 +32,8 @@ def choose_move(state: GameState) -> Move:
 def minMax (state: GameState, deep: int, alpha, beta  ):
     global nb_search
     nb_search += 1
-    if state.winner != None:
+    if (state.winner != None) or (deep == 0):
         return evaluation(state)
-    if deep == 0:
-        return qsearch(state, alpha, beta, QDEPTH)
     
     if state.current_turn == 1:
         maxEval = -10000
@@ -56,51 +52,6 @@ def minMax (state: GameState, deep: int, alpha, beta  ):
             eval = minMax(apply_move(state, m.piece_id, m.to_row, m.to_col), deep -1, alpha, beta)
             minEval = Min(minEval, eval)
             beta = min(beta, eval)
-            if beta <= alpha:
-                break
-        return minEval
-
-
-def qsearch(state: GameState, alpha, beta, qdepth: int):
-    """Past the normal depth, keep following only captures and finishes until the
-    position is quiet, so the eval is never taken in the middle of an exchange."""
-    global nb_search
-    nb_search += 1
-    # "stand pat": the side to move can usually make a quiet move instead,
-    # so it gets at least the eval of this position
-    stand = evaluation(state)
-    if state.winner != None or qdepth == 0:
-        return stand
-    
-    forcing = []
-    for m in all_legal_moves(state):
-        if m.captured_id is not None or m.finishes:
-            forcing.append(m)
-    
-    
-
-
-    if state.current_turn == 1:
-        if stand >= beta:
-            return stand
-        alpha = Max(alpha, stand)
-        maxEval = stand
-        for m in order(forcing, state):
-            eval = qsearch(apply_move(state, m.piece_id, m.to_row, m.to_col), alpha, beta, qdepth - 1)
-            maxEval = Max(maxEval, eval)
-            alpha = Max(alpha, eval)
-            if beta <= alpha:
-                break
-        return maxEval
-    else:
-        if stand <= alpha:
-            return stand
-        beta = Min(beta, stand)
-        minEval = stand
-        for m in order(forcing, state):
-            eval = qsearch(apply_move(state, m.piece_id, m.to_row, m.to_col), alpha, beta, qdepth - 1)
-            minEval = Min(minEval, eval)
-            beta = Min(beta, eval)
             if beta <= alpha:
                 break
         return minEval
@@ -182,10 +133,10 @@ def piece_value(state: GameState) -> list :
             total_player_1 += 1
         if p.type == "vanguard":
             player1_advence += ((state.size - 1 ) - p.row) * WHEIGHTS["adv_vanguard"]
-            total_player_1 += 2
+            total_player_1 += 1 * WHEIGHTS["val_vanguard"]
         if p.type == "sentinel":
             player1_advence += ((state.size - 1 ) - p.row) * WHEIGHTS["adv_sentinal"]
-            total_player_1 += 3
+            total_player_1 += 1 * WHEIGHTS["val_sentinal"]
 
     for p in list_active_piece_2:
         if p.type == "explorer":
