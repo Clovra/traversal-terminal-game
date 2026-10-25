@@ -142,12 +142,12 @@ def piece_value(state: GameState) -> list :
         if p.type == "explorer":
             player2_advence += p.row * ADV_EXPLORER
             total_player_2 += 1
-        if p.type == "vanguard":
+        if p.type == "vanguard"  :
             player2_advence += p.row * WHEIGHTS["adv_vanguard"]
-            total_player_2 += 2
+            total_player_2 += 1 * WHEIGHTS["val_vanguard"]
         if p.type == "sentinel":
             player2_advence += p.row * WHEIGHTS["adv_sentinal"]
-            total_player_2 += 3
+            total_player_2 += 1 * WHEIGHTS["val_sentinal"]
 
 
     total_picec_balance = total_player_1 - total_player_2
