@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+
+# each PC keeps its own game database; share games with mergeDb.py
+data/*.db
+data/*.db-journal

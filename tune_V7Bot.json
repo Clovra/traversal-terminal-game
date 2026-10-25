@@ -1,0 +1,15 @@
+{
+  "weights": {
+    "advance": 3,
+    "piece": 5,
+    "val_sentinal": 1,
+    "val_vanguard": 1,
+    "score": 30,
+    "develop": 0.6,
+    "defense": 1,
+    "adv_sentinal": 3,
+    "adv_vanguard": 0.333
+  },
+  "step": 1.0625,
+  "next_seed": 1201
+}

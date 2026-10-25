@@ -1,0 +1,16 @@
+{
+  "weights": {
+    "advance": 2.88,
+    "piece": 25.312,
+    "val_sentinal": 1.2,
+    "val_vanguard": 0.031,
+    "score": 20.0,
+    "develop": 5.695,
+    "defense": 2.25,
+    "adv_sentinal": 4.688,
+    "adv_vanguard": 2.637
+  },
+  "k": 7.430536969359943,
+  "train_error": 0.10616346598972559,
+  "test_error": 0.1548392670969564
+}
