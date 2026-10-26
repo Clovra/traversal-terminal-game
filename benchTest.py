@@ -19,9 +19,12 @@ import random
 import sys
 import time
 import traceback
+import os
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+
+from concurrent.futures import ProcessPoolExecutor
 
 from play import PLAYER_NAMES, Style, describe_move, end_message, render, status
 from traversal import (
@@ -182,6 +185,8 @@ def main() -> None:
     parser.add_argument("--watch", action="store_true", help="print every move and board")
     parser.add_argument("--quiet", action="store_true", help="only print the summary")
     parser.add_argument("--no-color", action="store_true", help="plain text output")
+    parser.add_argument("--workers", type=int, default=os.cpu_count() or 1,
+                        help="games played at once (default: every CPU thread)")
     args = parser.parse_args()
     if args.games < 1:
         parser.error("games must be at least 1")
@@ -195,27 +200,61 @@ def main() -> None:
     except (OSError, ValueError) as e:
         sys.exit(f"Can't use that board: {e}")
 
-    results = []
+    tasks = []
     for i in range(args.games):
         board = fixed_board or generate_board(pushes=args.pushes, seed=seed + i)
         # With two bots, swap colours every game
         red, blue = (bot_names[i % 2], bot_names[1 - i % 2]) if len(bot_names) == 2 else (bot_names[0],) * 2
-        r = play_game(red, blue, bots, board, args.watch, style)
-        results.append(r)
-        if not args.quiet:
-            outcome = "draw" if r.winner == 0 else f"{r.winner_name()} ({PLAYER_NAMES[r.winner]}) wins"
-            # Times in bot order (first bot, then --vs), whatever colour each played;
-            # a bot against itself has no names to tell apart, so use the colours
-            if len(bot_names) == 2:
-                times = [(name, r.think_time[1 if name == red else 2]) for name in bot_names]
-            else:
-                times = [("Red", r.think_time[1]), ("Blue", r.think_time[2])]
-            print(f"game {i + 1:>4}  {red} (Red) vs {blue} (Blue): {outcome:<24} "
-                  f"{r.reason:<24} {r.scores[0]}:{r.scores[1]}  {r.moves} moves  "
-                  + "  ".join(f"{name} {1000 * t:.0f} ms" for name, t in times)
-                  + f"  game {r.game_time:.2f} s")
+        tasks.append((red, blue, board))
+
+    # --watch prints every move, which only makes sense one game at a time
+    workers = 1 if args.watch else min(args.workers, args.games)
+    if workers == 1:
+        games = (play_game(red, blue, bots, board, args.watch, style) for red, blue, board in tasks)
+        results = report(games, bot_names, args.quiet)
+    else:
+        print(f"Playing {args.games} games, {workers} at once (the bots' own prints are hidden)")
+        with ProcessPoolExecutor(workers, initializer=_init_worker, initargs=(bot_names,)) as pool:
+            results = report(pool.map(_play_task, tasks), bot_names, args.quiet)
 
     summarize(results, bot_names, seed)
+
+
+def report(games, bot_names: list[str], quiet: bool) -> list[GameResult]:
+    """Print a line per game as it finishes; return all the results in order."""
+    results = []
+    for i, r in enumerate(games):
+        results.append(r)
+        if quiet:
+            continue
+        outcome = "draw" if r.winner == 0 else f"{r.winner_name()} ({PLAYER_NAMES[r.winner]}) wins"
+        # Times in bot order (first bot, then --vs), whatever colour each played;
+        # a bot against itself has no names to tell apart, so use the colours
+        if len(bot_names) == 2:
+            times = [(name, r.think_time[1 if name == r.red else 2]) for name in bot_names]
+        else:
+            times = [("Red", r.think_time[1]), ("Blue", r.think_time[2])]
+        print(f"game {i + 1:>4}  {r.red} (Red) vs {r.blue} (Blue): {outcome:<24} "
+              f"{r.reason:<24} {r.scores[0]}:{r.scores[1]}  {r.moves} moves  "
+              + "  ".join(f"{name} {1000 * t:.0f} ms" for name, t in times)
+              + f"  game {r.game_time:.2f} s", flush=True)
+    return results
+
+
+# --- worker side: each process loads its own copy of the bots ---
+
+_worker_bots: dict[str, object] = {}
+
+
+def _init_worker(bot_names: list[str]) -> None:
+    sys.stdout = open(os.devnull, "w")  # hide the bots' prints
+    for name in bot_names:
+        _worker_bots[name] = load_bot(name)
+
+
+def _play_task(task: tuple) -> GameResult:
+    red, blue, board = task
+    return play_game(red, blue, _worker_bots, board, watch=False, style=Style(color=False))
 
 
 if __name__ == "__main__":
